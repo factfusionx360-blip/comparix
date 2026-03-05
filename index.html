@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Comparix – Find the Best Deal</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --neon-cyan: #00f5ff;
+  --neon-purple: #bf00ff;
+  --neon-green: #00ff88;
+  --dark: #020408;
+  --dark2: #050d18;
+  --card-bg: rgba(0,245,255,0.04);
+  --text: #e0f4ff;
+  --muted: #4a7a8a;
+  --gold: #ffd700;
+  --nav-h: 64px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  background:var(--dark);
+  color:var(--text);
+  font-family:'Rajdhani',sans-serif;
+  overflow-x:hidden;
+  min-width:0;
+}
+@media (pointer:fine) { body { cursor:none; } }
+@media (pointer:coarse) { .cursor,.cursor-trail { display:none !important; } }
+
+.cursor {
+  width:12px; height:12px; background:var(--neon-cyan);
+  border-radius:50%; position:fixed; z-index:99999;
+  pointer-events:none; transform:translate(-50%,-50%);
+  transition:width .2s,height .2s;
+  box-shadow:0 0 15px var(--neon-cyan),0 0 30px var(--neon-cyan);
+  mix-blend-mode:screen;
+}
+.cursor-trail {
+  width:30px; height:30px; border:1px solid rgba(0,245,255,.4);
+  border-radius:50%; position:fixed; z-index:99998;
+  pointer-events:none; transform:translate(-50%,-50%);
+  transition:all .15s ease;
+}
+#bg-canvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:0; pointer-events:none; }
+.page { display:none; min-height:100vh; position:relative; z-index:1; }
+.page.active { display:block; }
+
+body::after {
+  content:''; position:fixed; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,var(--neon-cyan),transparent);
+  z-index:9999; animation:scanLine 4s linear infinite; opacity:.22; pointer-events:none;
+}
+@keyframes scanLine {
+  0%{top:0;opacity:0} 5%{opacity:.22} 95%{opacity:.22} 100%{top:100%;opacity:0}
+}
+
+/* ====== NAV ====== */
+nav {
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  height:var(--nav-h); padding:0 28px;
+  display:flex; align-items:center; justify-content:space-between;
+  background:rgba(2,4,8,.97); backdrop-filter:blur(16px);
+  border-bottom:1px solid rgba(0,245,255,.1);
+}
+.logo {
+  font-family:'Orbitron',sans-serif; font-size:22px; font-weight:900;
+  letter-spacing:2px;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  text-decoration:none; flex-shrink:0; line-height:1;
+}
+.logo-sub {
+  display:block; font-family:'Space Mono',monospace;
+  font-size:7.5px; letter-spacing:4px; color:var(--neon-cyan);
+  -webkit-text-fill-color:var(--neon-cyan); opacity:.6; margin-top:3px;
+}
+.nav-links { display:flex; gap:6px; }
+.nav-btn {
+  background:transparent; border:1px solid rgba(0,245,255,.2);
+  color:var(--text); font-family:'Rajdhani',sans-serif;
+  font-size:13px; font-weight:600; letter-spacing:1.5px;
+  padding:8px 18px; cursor:pointer; text-transform:uppercase;
+  position:relative; overflow:hidden; transition:all .3s;
+  clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%);
+  white-space:nowrap;
+}
+.nav-btn::before {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(0,245,255,.12),transparent);
+  transform:translateX(-100%); transition:transform .4s;
+}
+.nav-btn:hover::before { transform:translateX(100%); }
+.nav-btn:hover,.nav-btn.active {
+  border-color:var(--neon-cyan); color:var(--neon-cyan);
+  box-shadow:0 0 18px rgba(0,245,255,.2),inset 0 0 18px rgba(0,245,255,.05);
+  text-shadow:0 0 10px var(--neon-cyan);
+}
+.hamburger {
+  display:none; flex-direction:column; gap:5px;
+  background:none; border:none; cursor:pointer; padding:6px; z-index:1001;
+}
+.hamburger span {
+  display:block; width:24px; height:2px; background:var(--neon-cyan);
+  border-radius:2px; transition:all .3s; box-shadow:0 0 6px var(--neon-cyan);
+}
+.hamburger.open span:nth-child(1) { transform:rotate(45deg) translate(5px,5px); }
+.hamburger.open span:nth-child(2) { opacity:0; transform:scaleX(0); }
+.hamburger.open span:nth-child(3) { transform:rotate(-45deg) translate(5px,-5px); }
+
+.mobile-nav {
+  display:none; position:fixed;
+  top:var(--nav-h); left:0; right:0;
+  background:rgba(2,4,8,.98); backdrop-filter:blur(20px);
+  border-bottom:1px solid rgba(0,245,255,.14);
+  z-index:999; padding:12px 0 16px;
+  flex-direction:column; gap:2px;
+  transform:translateY(-110%); transition:transform .32s cubic-bezier(.4,0,.2,1);
+}
+.mobile-nav.open { transform:translateY(0); }
+.mobile-nav-btn {
+  background:transparent; border:none;
+  color:rgba(224,244,255,.65); font-family:'Orbitron',sans-serif;
+  font-size:13px; font-weight:700; letter-spacing:3px;
+  padding:15px 28px; text-align:left; cursor:pointer;
+  text-transform:uppercase; border-left:2px solid transparent; transition:all .2s;
+}
+.mobile-nav-btn:hover,.mobile-nav-btn.active {
+  color:var(--neon-cyan); border-left-color:var(--neon-cyan);
+  background:rgba(0,245,255,.04);
+}
+
+/* Mobile bottom nav */
+.mobile-bottom-nav {
+  display:none; position:fixed; bottom:0; left:0; right:0; z-index:1000;
+  background:rgba(2,4,8,.97); backdrop-filter:blur(20px);
+  border-top:1px solid rgba(0,245,255,.12);
+  justify-content:space-around; align-items:stretch; height:60px;
+}
+@supports (padding-bottom:env(safe-area-inset-bottom)) {
+  .mobile-bottom-nav { padding-bottom:env(safe-area-inset-bottom); height:calc(60px + env(safe-area-inset-bottom)); }
+}
+.mob-nav-btn {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:3px; background:none; border:none;
+  color:var(--muted); font-family:'Space Mono',monospace; font-size:7.5px;
+  letter-spacing:.8px; text-transform:uppercase; cursor:pointer; padding:7px 4px;
+  transition:all .2s; border-top:2px solid transparent;
+}
+.mob-nav-btn.active { color:var(--neon-cyan); border-top-color:var(--neon-cyan); background:rgba(0,245,255,.04); }
+.mob-icon { font-size:18px; line-height:1; }
+
+/* ====== HOME ====== */
+#home { padding-top:var(--nav-h); }
+.hero {
+  min-height:calc(100vh - var(--nav-h)); display:flex; flex-direction:column;
+  align-items:center; justify-content:center; text-align:center;
+  padding:52px 28px 40px; position:relative;
+}
+.hero-eyebrow {
+  font-family:'Space Mono',monospace; font-size:10px; letter-spacing:6px;
+  color:var(--neon-cyan); text-transform:uppercase; margin-bottom:20px;
+  opacity:0; animation:fadeUp .8s .2s ease forwards;
+}
+.hero-title {
+  font-family:'Orbitron',sans-serif; font-size:clamp(40px,11vw,110px);
+  font-weight:900; line-height:.92; letter-spacing:-1px; margin-bottom:16px;
+  opacity:0; animation:fadeUp .8s .4s ease forwards;
+}
+.hero-title .line1 {
+  display:block; background:linear-gradient(135deg,#fff 30%,var(--neon-cyan) 70%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.hero-title .line2 {
+  display:block; background:linear-gradient(135deg,var(--neon-purple) 20%,var(--neon-cyan) 80%);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 0 28px rgba(191,0,255,.4));
+}
+.hero-subtitle {
+  font-size:clamp(14px,3.5vw,19px); font-weight:300;
+  color:rgba(224,244,255,.57); max-width:570px; line-height:1.65;
+  margin-bottom:38px; letter-spacing:.3px;
+  opacity:0; animation:fadeUp .8s .6s ease forwards;
+}
+
+/* Search */
+.search-container {
+  width:100%; max-width:760px; position:relative;
+  opacity:0; animation:fadeUp .8s .8s ease forwards;
+}
+.search-box {
+  background:rgba(0,10,20,.93); border:1px solid rgba(0,245,255,.3);
+  border-radius:4px; display:flex; align-items:stretch; flex-wrap:nowrap;
+  box-shadow:0 20px 60px rgba(0,0,0,.5),0 0 60px rgba(0,245,255,.07);
+  transition:all .3s; overflow:hidden;
+}
+.search-box:focus-within {
+  border-color:var(--neon-cyan);
+  box-shadow:0 0 0 1px rgba(0,245,255,.2),0 24px 70px rgba(0,0,0,.6),0 0 100px rgba(0,245,255,.12);
+}
+.search-inner {
+  flex:1; min-width:0; display:flex; align-items:center; gap:10px; padding:0 16px;
+}
+.search-icon { font-size:18px; opacity:.42; flex-shrink:0; }
+.search-input {
+  flex:1; min-width:0; background:transparent; border:none; outline:none;
+  color:var(--text); font-family:'Space Mono',monospace;
+  font-size:12px; padding:16px 0; letter-spacing:.3px;
+}
+.search-input::placeholder { color:rgba(224,244,255,.2); font-size:11px; }
+.search-btn {
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple));
+  border:none; color:#000; font-family:'Orbitron',sans-serif;
+  font-size:11px; font-weight:700; letter-spacing:1.5px;
+  padding:16px 26px; cursor:pointer; flex-shrink:0;
+  text-transform:uppercase; transition:all .3s; white-space:nowrap;
+}
+.search-btn:hover { box-shadow:0 0 25px rgba(0,245,255,.45); }
+
+.search-tags {
+  display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; justify-content:center;
+}
+.search-tag {
+  font-family:'Space Mono',monospace; font-size:9px; color:var(--muted);
+  border:1px solid rgba(74,122,138,.3); padding:5px 12px; letter-spacing:.8px;
+  clip-path:polygon(5px 0%,100% 0%,calc(100% - 5px) 100%,0% 100%);
+  cursor:pointer; transition:all .2s; user-select:none;
+}
+.search-tag:hover { color:var(--neon-cyan); border-color:var(--neon-cyan); }
+
+.loading-dots {
+  display:none; text-align:center; padding:36px;
+  font-family:'Orbitron',sans-serif; font-size:12px;
+  letter-spacing:4px; color:var(--neon-cyan);
+}
+.loading-dots.show { display:block; }
+.loading-dots::after { content:''; animation:dotanim 1.5s infinite; }
+@keyframes dotanim { 0%{content:''} 33%{content:'.'} 66%{content:'..'} 100%{content:'...'} }
+
+/* Results */
+.results-section {
+  display:none; max-width:900px; margin:0 auto;
+  padding:36px 20px 56px; animation:fadeUp .5s ease forwards;
+}
+.results-section.show { display:block; }
+.results-header { display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+.results-header h3 {
+  font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700;
+  letter-spacing:3px; color:var(--neon-cyan); text-transform:uppercase; white-space:nowrap;
+}
+.results-divider { flex:1; height:1px; background:linear-gradient(90deg,rgba(0,245,255,.3),transparent); }
+.result-row {
+  padding:16px 18px; border:1px solid rgba(0,245,255,.08); margin-bottom:10px;
+  background:var(--card-bg); transition:all .3s; animation:fadeUp .4s ease forwards;
+  position:relative; overflow:hidden;
+}
+.result-row:first-child { border-color:var(--neon-green); }
+.result-row:first-child::before {
+  content:'BEST DEAL'; position:absolute; top:0; right:0;
+  font-family:'Space Mono',monospace; font-size:8px; letter-spacing:2px;
+  background:var(--neon-green); color:#000; padding:3px 10px; font-weight:700;
+}
+.result-row:hover { border-color:rgba(0,245,255,.22); transform:translateX(3px); }
+.result-row-inner {
+  display:grid; grid-template-columns:2fr 1fr 1fr 1fr; gap:12px; align-items:center;
+}
+.result-platform {
+  font-family:'Space Mono',monospace; font-size:10px; letter-spacing:2px;
+  color:var(--neon-cyan); opacity:.8;
+}
+.result-name { font-size:14px; font-weight:600; color:#fff; margin-top:3px; }
+.result-rating { text-align:center; font-size:13px; }
+.result-price {
+  font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700;
+  color:var(--neon-green); text-align:right;
+}
+.result-row:not(:first-child) .result-price { color:var(--text); font-size:17px; }
+.result-link { text-align:right; }
+.result-link a {
+  font-family:'Space Mono',monospace; font-size:9px; letter-spacing:1.5px;
+  color:var(--neon-cyan); text-decoration:none;
+  border:1px solid rgba(0,245,255,.3); padding:6px 12px; transition:all .2s;
+  display:inline-block;
+  clip-path:polygon(4px 0,100% 0,calc(100% - 4px) 100%,0 100%);
+}
+.result-link a:hover { background:rgba(0,245,255,.1); border-color:var(--neon-cyan); }
+
+/* Scrolling cards */
+.products-strip { padding:20px 0 72px; overflow:hidden; }
+.strip-title {
+  text-align:center; font-family:'Orbitron',sans-serif;
+  font-size:10px; letter-spacing:5px; color:var(--muted); margin-bottom:30px;
+}
+.cards-track { display:flex; gap:18px; animation:scrollLeft 30s linear infinite; width:max-content; }
+.cards-track:hover { animation-play-state:paused; }
+@keyframes scrollLeft { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.product-card {
+  background:var(--card-bg); border:1px solid rgba(0,245,255,.12);
+  padding:16px 18px; width:195px; flex-shrink:0;
+  position:relative; transition:all .3s; cursor:default;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+}
+.product-card:hover {
+  border-color:var(--neon-cyan); transform:translateY(-5px);
+  box-shadow:0 14px 28px rgba(0,0,0,.4),0 0 20px rgba(0,245,255,.1);
+}
+.card-platform { font-family:'Space Mono',monospace; font-size:8px; letter-spacing:2px; color:var(--neon-cyan); margin-bottom:7px; opacity:.7; }
+.card-name { font-size:12px; font-weight:600; margin-bottom:10px; line-height:1.4; }
+.card-prices { display:flex; align-items:baseline; gap:6px; }
+.card-price-best { font-family:'Orbitron',sans-serif; font-size:17px; font-weight:700; color:var(--neon-green); }
+.card-price-old { font-size:11px; color:var(--muted); text-decoration:line-through; }
+.card-saving { font-size:10px; color:var(--gold); margin-top:4px; font-weight:600; }
+
+/* Stats */
+.stats-bar {
+  border-top:1px solid rgba(0,245,255,.08); border-bottom:1px solid rgba(0,245,255,.08);
+  padding:44px 24px; display:grid; grid-template-columns:repeat(4,1fr);
+  gap:16px; text-align:center;
+  background:linear-gradient(135deg,rgba(0,245,255,.02),rgba(191,0,255,.02));
+}
+.stat-num {
+  font-family:'Orbitron',sans-serif; font-size:clamp(26px,5vw,42px); font-weight:900;
+  background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  line-height:1; margin-bottom:6px;
+}
+.stat-label { font-size:11px; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; }
+
+/* Features */
+.features { padding:80px 28px; max-width:1200px; margin:0 auto; }
+.section-header { text-align:center; margin-bottom:52px; }
+.section-tag { font-family:'Space Mono',monospace; font-size:9px; letter-spacing:5px; color:var(--neon-cyan); text-transform:uppercase; display:block; margin-bottom:13px; }
+.section-title { font-family:'Orbitron',sans-serif; font-size:clamp(22px,5vw,44px); font-weight:700; background:linear-gradient(135deg,#fff,var(--neon-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.features-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+.feature-card {
+  background:var(--card-bg); border:1px solid rgba(0,245,255,.1);
+  padding:32px 26px; position:relative; overflow:hidden; transition:all .4s; cursor:default;
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));
+}
+.feature-card:hover { border-color:rgba(0,245,255,.28); transform:translateY(-5px); box-shadow:0 22px 45px rgba(0,0,0,.35),0 0 28px rgba(0,245,255,.07); }
+.feature-icon { font-size:30px; margin-bottom:14px; display:block; }
+.feature-title { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700; color:var(--neon-cyan); margin-bottom:10px; }
+.feature-desc { font-size:13px; line-height:1.7; color:rgba(224,244,255,.55); font-weight:300; }
+
+/* How it works */
+.how-it-works { padding:80px 28px; max-width:1100px; margin:0 auto; }
+.steps { display:grid; grid-template-columns:repeat(4,1fr); position:relative; margin-top:52px; }
+.steps::before {
+  content:''; position:absolute; top:28px; left:48px; right:48px; height:1px;
+  background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple),var(--neon-green)); z-index:0;
+}
+.step { text-align:center; padding:0 14px; position:relative; z-index:1; }
+.step-num {
+  width:56px; height:56px; border-radius:50%; background:var(--dark2);
+  border:2px solid var(--neon-cyan); display:flex; align-items:center; justify-content:center;
+  font-family:'Orbitron',sans-serif; font-size:15px; font-weight:900; color:var(--neon-cyan);
+  margin:0 auto 18px; box-shadow:0 0 16px rgba(0,245,255,.22); transition:all .3s;
+}
+.step:hover .step-num { background:var(--neon-cyan); color:#000; box-shadow:0 0 30px rgba(0,245,255,.5); transform:scale(1.07); }
+.step-title { font-family:'Orbitron',sans-serif; font-size:12px; font-weight:700; color:#fff; margin-bottom:7px; }
+.step-desc { font-size:12px; color:var(--muted); line-height:1.6; }
+
+/* ====== PRICING ====== */
+#pricing { padding:calc(var(--nav-h) + 60px) 28px 80px; }
+.pricing-hero { text-align:center; margin-bottom:56px; }
+.pricing-hero h1 { font-family:'Orbitron',sans-serif; font-size:clamp(26px,6vw,58px); font-weight:900; background:linear-gradient(135deg,#fff,var(--neon-cyan)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:14px; line-height:1.1; }
+.pricing-hero p { font-size:16px; color:rgba(224,244,255,.5); max-width:460px; margin:0 auto; line-height:1.7; }
+.toggle-container { display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:48px; }
+.toggle-label { font-family:'Rajdhani',sans-serif; font-size:14px; font-weight:600; letter-spacing:1.5px; color:var(--muted); text-transform:uppercase; }
+.toggle-label.active { color:var(--neon-cyan); }
+.toggle { width:50px; height:24px; background:rgba(0,245,255,.08); border:1px solid rgba(0,245,255,.3); border-radius:12px; cursor:pointer; position:relative; transition:all .3s; }
+.toggle::after { content:''; width:16px; height:16px; background:var(--neon-cyan); border-radius:50%; position:absolute; top:3px; left:4px; transition:all .3s; box-shadow:0 0 8px var(--neon-cyan); }
+.toggle.on::after { transform:translateX(26px); }
+.pricing-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; max-width:1050px; margin:0 auto; }
+.price-card {
+  background:var(--card-bg); border:1px solid rgba(0,245,255,.12);
+  padding:40px 30px; position:relative; overflow:hidden;
+  transition:all .4s; cursor:default;
+  clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,0 100%);
+}
+.price-card:hover { transform:translateY(-8px); border-color:rgba(0,245,255,.28); box-shadow:0 30px 60px rgba(0,0,0,.45),0 0 48px rgba(0,245,255,.08); }
+.price-card.featured { border-color:var(--neon-cyan); background:rgba(0,245,255,.055); box-shadow:0 0 48px rgba(0,245,255,.1); }
+.featured-badge { position:absolute; top:14px; right:14px; font-family:'Space Mono',monospace; font-size:8px; letter-spacing:1.5px; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple)); color:#000; padding:3px 10px; font-weight:700; }
+.plan-name { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; color:var(--neon-cyan); margin-bottom:18px; text-transform:uppercase; }
+.plan-price { font-family:'Orbitron',sans-serif; font-size:46px; font-weight:900; color:#fff; line-height:1; margin-bottom:5px; }
+.plan-price sup { font-size:20px; vertical-align:top; margin-top:8px; color:var(--neon-cyan); }
+.plan-period { font-size:12px; color:var(--muted); margin-bottom:26px; }
+.plan-divider { height:1px; background:linear-gradient(90deg,var(--neon-cyan),transparent); margin-bottom:22px; opacity:.22; }
+.plan-features { list-style:none; margin-bottom:30px; }
+.plan-features li { font-size:13px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.04); display:flex; align-items:center; gap:10px; color:rgba(224,244,255,.7); }
+.plan-features li::before { content:'◈'; color:var(--neon-cyan); font-size:10px; flex-shrink:0; }
+.plan-features li.disabled { color:rgba(74,122,138,.4); text-decoration:line-through; }
+.plan-features li.disabled::before { color:rgba(74,122,138,.3); }
+.plan-btn { width:100%; padding:13px; font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; cursor:pointer; border:1px solid var(--neon-cyan); background:transparent; color:var(--neon-cyan); transition:all .3s; clip-path:polygon(7px 0%,100% 0%,calc(100% - 7px) 100%,0% 100%); }
+.plan-btn:hover,.price-card.featured .plan-btn { background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple)); color:#000; border-color:transparent; box-shadow:0 0 22px rgba(0,245,255,.35); }
+.faq { max-width:780px; margin:80px auto 60px; padding:0 28px; }
+.faq-item { border-bottom:1px solid rgba(0,245,255,.1); padding:20px 0; cursor:pointer; }
+.faq-q { font-family:'Orbitron',sans-serif; font-size:13px; font-weight:600; color:#fff; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+.faq-q span { color:var(--neon-cyan); font-size:20px; transition:transform .3s; flex-shrink:0; }
+.faq-item.open .faq-q span { transform:rotate(45deg); }
+.faq-a { font-size:14px; color:rgba(224,244,255,.5); line-height:1.8; max-height:0; overflow:hidden; transition:all .4s; }
+.faq-item.open .faq-a { max-height:200px; margin-top:12px; }
+
+/* ====== ABOUT ====== */
+#about { padding:calc(var(--nav-h) + 60px) 28px 80px; }
+.about-hero { text-align:center; margin-bottom:76px; }
+.about-hero h1 { font-family:'Orbitron',sans-serif; font-size:clamp(24px,6vw,56px); font-weight:900; background:linear-gradient(135deg,#fff 30%,var(--neon-purple) 70%); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:18px; line-height:1.1; }
+.about-hero p { font-size:16px; color:rgba(224,244,255,.5); max-width:600px; margin:0 auto; line-height:1.8; }
+.about-grid { display:grid; grid-template-columns:1fr 1fr; gap:50px; max-width:1050px; margin:0 auto 72px; align-items:center; }
+.about-visual { position:relative; height:350px; }
+.about-visual canvas { width:100%; height:100%; }
+.about-text h2 { font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:var(--neon-cyan); margin-bottom:14px; }
+.about-text p { font-size:15px; color:rgba(224,244,255,.57); line-height:1.9; margin-bottom:12px; font-weight:300; }
+.mission-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; max-width:1050px; margin:0 auto 64px; }
+.mission-card { padding:30px 22px; border:1px solid rgba(0,245,255,.1); background:var(--card-bg); text-align:center; transition:all .3s; cursor:default; clip-path:polygon(0 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%); }
+.mission-card:hover { border-color:var(--neon-purple); transform:translateY(-5px); box-shadow:0 16px 32px rgba(0,0,0,.35),0 0 22px rgba(191,0,255,.08); }
+.mission-icon { font-size:34px; margin-bottom:12px; }
+.mission-title { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; color:var(--neon-purple); margin-bottom:9px; letter-spacing:1px; }
+.mission-desc { font-size:13px; color:rgba(224,244,255,.5); line-height:1.7; }
+.team { max-width:1050px; margin:0 auto; padding-bottom:40px; }
+.team-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:44px; }
+.team-card { background:var(--card-bg); border:1px solid rgba(0,245,255,.1); padding:26px 14px; text-align:center; transition:all .3s; cursor:default; }
+.team-card:hover { border-color:var(--neon-cyan); transform:translateY(-4px); box-shadow:0 0 22px rgba(0,245,255,.08); }
+.team-avatar { width:58px; height:58px; border-radius:50%; background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple)); margin:0 auto 12px; display:flex; align-items:center; justify-content:center; font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900; color:#000; box-shadow:0 0 14px rgba(0,245,255,.25); }
+.team-name { font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; color:#fff; margin-bottom:5px; }
+.team-role { font-size:10px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
+
+/* ====== CONTACT ====== */
+#contact { padding:calc(var(--nav-h) + 60px) 28px 80px; }
+.contact-hero { text-align:center; margin-bottom:56px; }
+.contact-hero h1 { font-family:'Orbitron',sans-serif; font-size:clamp(26px,6vw,58px); font-weight:900; background:linear-gradient(135deg,#fff,var(--neon-green)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:14px; }
+.contact-hero p { font-size:16px; color:rgba(224,244,255,.5); }
+.contact-layout { display:grid; grid-template-columns:1fr 1.5fr; gap:48px; max-width:1050px; margin:0 auto; align-items:start; }
+.contact-info h2 { font-family:'Orbitron',sans-serif; font-size:19px; font-weight:700; color:var(--neon-green); margin-bottom:26px; }
+.contact-item { display:flex; gap:14px; margin-bottom:22px; align-items:flex-start; }
+.contact-icon { width:40px; height:40px; background:rgba(0,255,136,.08); border:1px solid rgba(0,255,136,.2); display:flex; align-items:center; justify-content:center; font-size:17px; flex-shrink:0; clip-path:polygon(5px 0,100% 0,100% calc(100% - 5px),calc(100% - 5px) 100%,0 100%,0 5px); }
+.contact-item-text strong { display:block; font-family:'Orbitron',sans-serif; font-size:9px; letter-spacing:2px; color:var(--neon-green); margin-bottom:3px; }
+.contact-item-text span { font-size:14px; color:rgba(224,244,255,.57); }
+.social-links { display:flex; gap:10px; margin-top:32px; }
+.social-link { width:40px; height:40px; border:1px solid rgba(0,245,255,.2); display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer; transition:all .3s; clip-path:polygon(4px 0,100% 0,100% calc(100% - 4px),calc(100% - 4px) 100%,0 100%,0 4px); text-decoration:none; color:var(--text); }
+.social-link:hover { border-color:var(--neon-cyan); background:rgba(0,245,255,.08); transform:translateY(-2px); }
+.contact-form { background:var(--card-bg); border:1px solid rgba(0,245,255,.1); padding:38px 32px; clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%); position:relative; }
+.contact-form::before { content:''; position:absolute; top:0; right:0; width:22px; height:22px; background:linear-gradient(135deg,transparent 50%,rgba(0,245,255,.22) 50%); }
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.form-group { margin-bottom:18px; }
+.form-group label { display:block; font-family:'Space Mono',monospace; font-size:9px; letter-spacing:2.5px; color:var(--neon-cyan); text-transform:uppercase; margin-bottom:7px; }
+.form-group input,.form-group textarea,.form-group select { width:100%; background:rgba(0,10,20,.6); border:1px solid rgba(0,245,255,.15); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:15px; padding:12px 14px; outline:none; transition:all .3s; resize:none; -webkit-appearance:none; }
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus { border-color:var(--neon-cyan); box-shadow:0 0 14px rgba(0,245,255,.09); background:rgba(0,245,255,.025); }
+.form-group select option { background:#050d18; }
+.form-group textarea { height:116px; }
+.submit-btn { width:100%; padding:15px; background:linear-gradient(135deg,var(--neon-cyan),var(--neon-purple)); border:none; color:#000; font-family:'Orbitron',sans-serif; font-size:11px; font-weight:700; letter-spacing:3px; text-transform:uppercase; cursor:pointer; clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%); transition:all .3s; }
+.submit-btn:hover { box-shadow:0 0 30px rgba(0,245,255,.35); transform:translateY(-1px); }
+.success-msg { display:none; text-align:center; padding:22px; font-family:'Orbitron',sans-serif; font-size:10px; letter-spacing:2px; color:var(--neon-green); border:1px solid rgba(0,255,136,.24); background:rgba(0,255,136,.04); margin-top:14px; }
+
+/* Footer */
+footer { border-top:1px solid rgba(0,245,255,.07); padding:28px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; background:rgba(2,4,8,.8); margin-top:40px; }
+.footer-logo { font-family:'Orbitron',sans-serif; font-size:15px; font-weight:900; background:linear-gradient(90deg,var(--neon-cyan),var(--neon-purple)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.footer-text { font-family:'Space Mono',monospace; font-size:8.5px; color:var(--muted); letter-spacing:1.5px; }
+
+@keyframes fadeUp { from{opacity:0;transform:translateY(26px)} to{opacity:1;transform:translateY(0)} }
+.glitch { position:relative; }
+.glitch::before { content:attr(data-text); position:absolute; inset:0; background:inherit; -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:glitch1 3.5s infinite; clip-path:polygon(0 20%,100% 20%,100% 40%,0 40%); }
+@keyframes glitch1 { 0%,90%,100%{transform:translateX(0);opacity:0} 92%{transform:translateX(-3px);opacity:.5} 94%{transform:translateX(3px);opacity:.5} 96%{transform:translateX(0);opacity:0} }
+
+/* ====== TABLET 769-1024 ====== */
+@media (max-width:1024px) and (min-width:769px) {
+  nav { padding:0 20px; }
+  .nav-btn { padding:7px 13px; font-size:12px; }
+  .features-grid { grid-template-columns:1fr 1fr; }
+  .steps { grid-template-columns:1fr 1fr; gap:36px 20px; }
+  .steps::before { display:none; }
+  .pricing-grid { grid-template-columns:1fr; max-width:420px; }
+  .about-grid { grid-template-columns:1fr; }
+  .about-visual { height:260px; }
+  .mission-cards { grid-template-columns:1fr 1fr; }
+  .contact-layout { grid-template-columns:1fr; }
+  .stats-bar { grid-template-columns:repeat(2,1fr); gap:22px; }
+}
+
+/* ====== MOBILE ≤768 ====== */
+@media (max-width:768px) {
+  :root { --nav-h:58px; }
+  .nav-links { display:none; }
+  .hamburger { display:flex; }
+  .mobile-bottom-nav { display:flex; }
+  .page { padding-bottom:72px; }
+  nav { padding:0 16px; }
+  .logo { font-size:19px; letter-spacing:1.5px; }
+  .logo-sub { font-size:7px; letter-spacing:3px; }
+
+  /* Hero */
+  .hero { padding:28px 16px 20px; min-height:calc(100svh - var(--nav-h)); justify-content:flex-start; padding-top:36px; }
+  .hero-eyebrow { font-size:8px; letter-spacing:3.5px; margin-bottom:12px; }
+  .hero-title { font-size:clamp(36px,11vw,56px); letter-spacing:-.5px; margin-bottom:13px; }
+  .hero-subtitle { font-size:14px; margin-bottom:26px; }
+
+  /* Search stacks vertically */
+  .search-box { flex-direction:column; }
+  .search-inner { padding:13px 14px; border-bottom:1px solid rgba(0,245,255,.1); }
+  .search-input { font-size:13px; padding:0; }
+  .search-btn { padding:14px; width:100%; text-align:center; clip-path:none; border-radius:0; font-size:12px; letter-spacing:2px; }
+  .search-tags { gap:6px; }
+  .search-tag { font-size:8px; padding:4px 10px; }
+
+  /* Cards */
+  .product-card { width:165px; padding:13px 14px; }
+  .card-name { font-size:11px; }
+  .card-price-best { font-size:15px; }
+
+  /* Stats */
+  .stats-bar { grid-template-columns:1fr 1fr; padding:28px 16px; gap:18px; }
+  .stat-label { font-size:9px; letter-spacing:1px; }
+
+  /* Features */
+  .features { padding:52px 16px; }
+  .features-grid { grid-template-columns:1fr; gap:12px; }
+  .feature-card { padding:22px 18px; clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px)); }
+  .feature-icon { font-size:26px; margin-bottom:10px; }
+  .feature-title { font-size:12px; }
+  .feature-desc { font-size:12px; }
+
+  /* Steps */
+  .how-it-works { padding:52px 16px; }
+  .steps { grid-template-columns:1fr 1fr; gap:28px 14px; }
+  .steps::before { display:none; }
+  .step-num { width:48px; height:48px; font-size:14px; margin-bottom:14px; }
+  .step-title { font-size:11px; }
+  .step-desc { font-size:11px; }
+
+  /* Results */
+  .results-section { padding:20px 14px 36px; }
+  .result-row { padding:14px; }
+  .result-row-inner { grid-template-columns:1fr 1fr; grid-template-rows:auto auto; gap:8px; }
+  .result-name { font-size:13px; }
+  .result-rating { text-align:left; }
+  .result-price { text-align:left; font-size:17px !important; }
+  .result-link { grid-column:1/-1; text-align:left; }
+
+  /* Pricing */
+  #pricing { padding:calc(var(--nav-h) + 28px) 16px 80px; }
+  .pricing-hero h1 { font-size:clamp(22px,8vw,38px); }
+  .pricing-hero p { font-size:14px; }
+  .pricing-grid { grid-template-columns:1fr; gap:14px; max-width:100%; }
+  .price-card { padding:26px 20px; clip-path:polygon(0 0,calc(100% - 14px) 0,100% 14px,100% 100%,0 100%); }
+  .plan-price { font-size:38px; }
+  .faq { padding:0 16px; margin:48px auto 36px; }
+  .faq-q { font-size:12px; }
+
+  /* About */
+  #about { padding:calc(var(--nav-h) + 28px) 16px 80px; }
+  .about-hero { margin-bottom:44px; }
+  .about-hero h1 { font-size:clamp(20px,8vw,34px); }
+  .about-hero p { font-size:14px; }
+  .about-grid { grid-template-columns:1fr; gap:28px; }
+  .about-visual { height:220px; }
+  .about-text h2 { font-size:17px; }
+  .about-text p { font-size:14px; }
+  .mission-cards { grid-template-columns:1fr; gap:12px; }
+  .mission-card { padding:22px 16px; }
+  .team-grid { grid-template-columns:1fr 1fr; gap:12px; }
+  .team-avatar { width:50px; height:50px; font-size:16px; }
+  .team-name { font-size:11px; }
+
+  /* Contact */
+  #contact { padding:calc(var(--nav-h) + 28px) 16px 80px; }
+  .contact-hero h1 { font-size:clamp(22px,8vw,38px); }
+  .contact-layout { grid-template-columns:1fr; gap:32px; }
+  .contact-form { padding:24px 18px; clip-path:none; }
+  .contact-form::before { display:none; }
+  .form-row { grid-template-columns:1fr; gap:0; }
+
+  /* Footer */
+  footer { flex-direction:column; align-items:flex-start; gap:6px; padding:22px 16px; }
+  .footer-text { font-size:7.5px; }
+  .section-header { margin-bottom:32px; }
+}
+
+@media (max-width:380px) {
+  .hero-title { font-size:32px; }
+  .search-tag { font-size:7.5px; padding:4px 8px; }
+  .stats-bar { padding:22px 12px; gap:14px; }
+}
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-trail" id="cursorTrail"></div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- NAV -->
+<nav>
+  <a class="logo" href="#" onclick="showPage('home');return false;">
+    COMPARIX<span class="logo-sub">PRICE INTELLIGENCE</span>
+  </a>
+  <div class="nav-links">
+    <button class="nav-btn active" id="btn-home" onclick="showPage('home')">Home</button>
+    <button class="nav-btn" id="btn-pricing" onclick="showPage('pricing')">Pricing</button>
+    <button class="nav-btn" id="btn-about" onclick="showPage('about')">About Us</button>
+    <button class="nav-btn" id="btn-contact" onclick="showPage('contact')">Contact</button>
+  </div>
+  <button class="hamburger" id="hamburger" onclick="toggleMenu()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="mobile-nav" id="mobileNav" style="display:flex;">
+  <button class="mobile-nav-btn active" id="mob-btn-home" onclick="showPage('home');closeMenu()">Home</button>
+  <button class="mobile-nav-btn" id="mob-btn-pricing" onclick="showPage('pricing');closeMenu()">Pricing</button>
+  <button class="mobile-nav-btn" id="mob-btn-about" onclick="showPage('about');closeMenu()">About Us</button>
+  <button class="mobile-nav-btn" id="mob-btn-contact" onclick="showPage('contact');closeMenu()">Contact</button>
+</div>
+
+<div class="mobile-bottom-nav">
+  <button class="mob-nav-btn active" id="mobbtn-home" onclick="showPage('home')"><span class="mob-icon">🏠</span>Home</button>
+  <button class="mob-nav-btn" id="mobbtn-pricing" onclick="showPage('pricing')"><span class="mob-icon">💎</span>Pricing</button>
+  <button class="mob-nav-btn" id="mobbtn-about" onclick="showPage('about')"><span class="mob-icon">⚡</span>About</button>
+  <button class="mob-nav-btn" id="mobbtn-contact" onclick="showPage('contact')"><span class="mob-icon">✉️</span>Contact</button>
+</div>
+
+<!-- HOME -->
+<div class="page active" id="home">
+  <section class="hero">
+    <div class="hero-eyebrow">⬡ Real-Time Price Intelligence Engine</div>
+    <h1 class="hero-title">
+      <span class="line1 glitch" data-text="COMPARE">COMPARE</span>
+      <span class="line2">EVERY PRICE.</span>
+    </h1>
+    <p class="hero-subtitle">Paste any product link from Amazon, Flipkart, Myntra, Meesho, or any platform — we'll scan the web and find you the best deal in seconds.</p>
+    <div class="search-container">
+      <div class="search-box">
+        <div class="search-inner">
+          <span class="search-icon">🔗</span>
+          <input class="search-input" id="linkInput" type="url" inputmode="url" placeholder="Paste product link here…">
+        </div>
+        <button class="search-btn" onclick="async function searchProduct() {
+  const url = document.getElementById('linkInput').value.trim();
+  if (!url) {
+    const el = document.getElementById('linkInput');
+    el.style.borderColor = '#ff3366';
+    el.placeholder = '⚠ Please enter a product link!';
+    setTimeout(() => {
+      el.style.borderColor = '';
+      el.placeholder = 'Paste product link here…';
+    }, 2200);
+    return;
+  }
+
+  const loading = document.getElementById('loadingDots');
+  const results = document.getElementById('resultsSection');
+  results.classList.remove('show');
+  loading.classList.add('show');
+
+  try {
+    const API_URL = 'https://comparix-backend.onrender.com/compare'; // ← your Render URL
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    const data = await response.json();
+    loading.classList.remove('show');
+
+    if (data.error) {
+      alert('⚠ ' + data.error);
+      return;
+    }
+
+    results.classList.add('show');
+
+    // Update results header with product name
+    const header = document.querySelector('.results-header h3');
+    if (header) {
+      header.textContent = data.product.title.length > 55
+        ? data.product.title.substring(0, 55) + '…'
+        : data.product.title;
+    }
+
+    const body = document.getElementById('resultsBody');
+
+    if (!data.results || data.results.length === 0) {
+      body.innerHTML = `
+        <div style="text-align:center;padding:48px 20px;font-family:'Orbitron',sans-serif;
+          font-size:11px;color:var(--muted);letter-spacing:3px;line-height:2;">
+          NO MATCHING LISTINGS FOUND<br>
+          <span style="font-size:10px;opacity:.6">TRY A MORE POPULAR PRODUCT OR A DIRECT PRODUCT PAGE LINK</span>
+        </div>`;
+      results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
+
+    body.innerHTML = data.results.map((r, i) => `
+      <div class="result-row" style="animation-delay:${i * 0.09}s">
+        <div class="result-row-inner">
+          <div>
+            <div class="result-platform">${r.logo || ''} ${r.platform}</div>
+            <div class="result-name">${(r.title || '').substring(0, 58)}…</div>
+          </div>
+          <div class="result-rating">${r.rating ? r.rating + ' ⭐' : '—'}</div>
+          <div class="result-price">${r.price.display}</div>
+          <div class="result-link">
+            <a href="${r.url}" target="_blank" rel="noopener">VIEW DEAL ›</a>
+          </div>
+        </div>
+      </div>`).join('');
+
+    results.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  } catch (err) {
+    loading.classList.remove('show');
+    console.error(err);
+    alert('Could not connect to the Comparix server. Please try again.');
+  }
+}">Compare Prices ›</button>
+      </div>
+      <div class="search-tags">
+        <span class="search-tag" onclick="fillExample('amazon')">amazon.in</span>
+        <span class="search-tag" onclick="fillExample('flipkart')">flipkart.com</span>
+        <span class="search-tag" onclick="fillExample('myntra')">myntra.com</span>
+        <span class="search-tag" onclick="fillExample('meesho')">meesho.com</span>
+        <span class="search-tag" onclick="fillExample('nykaa')">nykaa.com</span>
+        <span class="search-tag" onclick="fillExample('snapdeal')">snapdeal.com</span>
+      </div>
+    </div>
+    <div class="loading-dots" id="loadingDots">SCANNING MARKETS</div>
+  </section>
+
+  <div class="results-section" id="resultsSection">
+    <div class="results-header">
+      <h3>Price Comparison Results</h3>
+      <div class="results-divider"></div>
+    </div>
+    <div id="resultsBody"></div>
+  </div>
+
+  <div class="products-strip">
+    <p class="strip-title">◈ LIVE DEALS TRACKED BY COMPARIX ◈</p>
+    <div class="cards-track" id="cardsTrack"></div>
+  </div>
+
+  <div class="stats-bar">
+    <div><div class="stat-num" data-target="500">0</div><div class="stat-label">Sites Tracked</div></div>
+    <div><div class="stat-num" data-target="2">0</div><div class="stat-label">Sec Avg Scan</div></div>
+    <div><div class="stat-num" data-target="12">0</div><div class="stat-label">Million Products</div></div>
+    <div><div class="stat-num" data-target="98">0</div><div class="stat-label">% Accuracy</div></div>
+  </div>
+
+  <div class="features">
+    <div class="section-header">
+      <span class="section-tag">Why Comparix</span>
+      <h2 class="section-title">The Edge You Need</h2>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card"><span class="feature-icon">⚡</span><div class="feature-title">Instant Scan</div><p class="feature-desc">Our AI scans 500+ platforms in under 2 seconds, matching products by model number, specs, and images — not just keywords.</p></div>
+      <div class="feature-card"><span class="feature-icon">🎯</span><div class="feature-title">Exact Match AI</div><p class="feature-desc">Advanced ML ensures you compare the exact variant — same color, size, configuration. No misleading results.</p></div>
+      <div class="feature-card"><span class="feature-icon">📊</span><div class="feature-title">Price History</div><p class="feature-desc">View 180-day price history to know if now is the right time to buy or a better deal is coming.</p></div>
+      <div class="feature-card"><span class="feature-icon">🔔</span><div class="feature-title">Price Alerts</div><p class="feature-desc">Set a target price and get instant notifications when any platform drops below your desired amount.</p></div>
+      <div class="feature-card"><span class="feature-icon">🛡️</span><div class="feature-title">Trust Score</div><p class="feature-desc">Every result includes a seller trust score from verified reviews, return policies, and delivery data.</p></div>
+      <div class="feature-card"><span class="feature-icon">🌐</span><div class="feature-title">Cross-Platform</div><p class="feature-desc">Works with Amazon, Flipkart, Myntra, Meesho, Nykaa, Snapdeal, Ajio, JioMart, and 490+ more.</p></div>
+    </div>
+  </div>
+
+  <div class="how-it-works">
+    <div class="section-header">
+      <span class="section-tag">The Process</span>
+      <h2 class="section-title">How It Works</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><div class="step-title">Paste Link</div><div class="step-desc">Copy any product URL from any shopping app</div></div>
+      <div class="step"><div class="step-num">02</div><div class="step-title">AI Identifies</div><div class="step-desc">Engine identifies the exact product model and variant</div></div>
+      <div class="step"><div class="step-num">03</div><div class="step-title">Web Scans</div><div class="step-desc">Live scan across 500+ platforms for same product</div></div>
+      <div class="step"><div class="step-num">04</div><div class="step-title">Best Deal</div><div class="step-desc">Ranked results — lowest price, best rating, fastest delivery</div></div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="footer-logo">COMPARIX</div>
+    <div class="footer-text">© 2025 COMPARIX. ALL RIGHTS RESERVED.</div>
+    <div class="footer-text">PRICE INTELLIGENCE AI</div>
+  </footer>
+</div>
+
+<!-- PRICING -->
+<div class="page" id="pricing">
+  <div class="pricing-hero">
+    <h1>Simple Pricing.</h1>
+    <p>No hidden fees. No surprises. Choose a plan that scales with your needs.</p>
+  </div>
+  <div class="toggle-container">
+    <span class="toggle-label active" id="monthlyLabel">Monthly</span>
+    <div class="toggle" id="billingToggle" onclick="toggleBilling()"></div>
+    <span class="toggle-label" id="annualLabel">Annual <span style="color:var(--neon-green);font-size:11px;"> Save 30%</span></span>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="plan-name">Explorer</div>
+      <div class="plan-price"><sup>₹</sup><span class="price-val" data-monthly="0" data-annual="0">0</span></div>
+      <div class="plan-period">Per month · Free forever</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>10 comparisons per day</li><li>5 platform scan</li><li>Basic price history (30 days)</li><li>Email alerts (1 product)</li>
+        <li class="disabled">Seller trust score</li><li class="disabled">API access</li><li class="disabled">Bulk comparisons</li>
+      </ul>
+      <button class="plan-btn">Get Started Free</button>
+    </div>
+    <div class="price-card featured">
+      <div class="featured-badge">MOST POPULAR</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price"><sup>₹</sup><span class="price-val" data-monthly="299" data-annual="209">299</span></div>
+      <div class="plan-period" id="proPeriod">Per month · Billed monthly</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Unlimited comparisons</li><li>500+ platform scan</li><li>Full price history (180 days)</li><li>Unlimited alerts</li><li>Seller trust score</li><li>Priority scan speed</li>
+        <li class="disabled">API access</li>
+      </ul>
+      <button class="plan-btn">Start Pro Trial</button>
+    </div>
+    <div class="price-card">
+      <div class="plan-name">Enterprise</div>
+      <div class="plan-price"><sup>₹</sup><span class="price-val" data-monthly="999" data-annual="699">999</span></div>
+      <div class="plan-period" id="entPeriod">Per month · Billed monthly</div>
+      <div class="plan-divider"></div>
+      <ul class="plan-features">
+        <li>Everything in Pro</li><li>API access (10K req/day)</li><li>Bulk comparison upload</li><li>Dedicated account manager</li><li>Custom integrations</li><li>SLA guarantee</li><li>White-label options</li>
+      </ul>
+      <button class="plan-btn">Contact Sales</button>
+    </div>
+  </div>
+  <div class="faq">
+    <div class="section-header"><span class="section-tag">Questions</span><h2 class="section-title" style="font-size:clamp(20px,5vw,34px);">Frequently Asked</h2></div>
+    <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">How accurate are the price comparisons? <span>+</span></div><div class="faq-a">Our AI achieves 98%+ accuracy by matching products using GTIN, MPN, image hashing, and title similarity. Prices update every 15 minutes for Pro users.</div></div>
+    <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Can I paste links from apps like Meesho or Myntra? <span>+</span></div><div class="faq-a">Yes! Use the "Share" button in any shopping app to copy the product link, then paste it into Comparix. We support 500+ platforms.</div></div>
+    <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Is there a free plan? <span>+</span></div><div class="faq-a">Absolutely. Our Explorer plan is completely free with 10 comparisons per day. No credit card required.</div></div>
+    <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Can I cancel anytime? <span>+</span></div><div class="faq-a">Yes, cancel anytime with no penalty. You'll keep access until the end of your billing period.</div></div>
+  </div>
+  <footer><div class="footer-logo">COMPARIX</div><div class="footer-text">© 2025 COMPARIX. ALL RIGHTS RESERVED.</div><div class="footer-text">PRICE INTELLIGENCE AI</div></footer>
+</div>
+
+<!-- ABOUT -->
+<div class="page" id="about">
+  <div class="about-hero">
+    <h1>We Built the Tool<br>We Wished Existed.</h1>
+    <p>Comparix was born from frustration — spending hours comparing prices across multiple tabs, only to find a better deal after checkout. We fixed that.</p>
+  </div>
+  <div class="about-grid">
+    <div class="about-visual"><canvas id="about-canvas"></canvas></div>
+    <div class="about-text">
+      <h2>Our Story</h2>
+      <p>In 2023, engineers and designers — all tired of being overcharged — built Comparix. The idea: give every shopper real-time price data across every platform in one place.</p>
+      <p>We spent 18 months training our price-matching AI on millions of listings. Today, Comparix tracks 12 million+ products across 500+ platforms, saving users an average of ₹1,200 per purchase.</p>
+      <p>Our mission is radical price transparency. Nobody should overpay simply because they didn't know a better deal was 3 tabs away.</p>
+    </div>
+  </div>
+  <div class="mission-cards">
+    <div class="mission-card"><div class="mission-icon">🔭</div><div class="mission-title">Our Vision</div><div class="mission-desc">A world where every consumer makes perfectly informed purchase decisions — where price manipulation has nowhere to hide.</div></div>
+    <div class="mission-card"><div class="mission-icon">🧬</div><div class="mission-title">Our Mission</div><div class="mission-desc">Democratize price intelligence — making tools used by procurement professionals available to every individual shopper.</div></div>
+    <div class="mission-card"><div class="mission-icon">⚖️</div><div class="mission-title">Our Values</div><div class="mission-desc">Transparency. Speed. Accuracy. We never take commissions from retailers — our loyalty is entirely to the shopper.</div></div>
+  </div>
+  <div class="team">
+    <div class="section-header"><span class="section-tag">The People</span><h2 class="section-title">Behind Comparix</h2></div>
+    <div class="team-grid">
+      <div class="team-card"><div class="team-avatar">AK</div><div class="team-name">Arun Kumar</div><div class="team-role">CEO & Co-Founder</div></div>
+      <div class="team-card"><div class="team-avatar">PS</div><div class="team-name">Priya Sharma</div><div class="team-role">CTO & AI Lead</div></div>
+      <div class="team-card"><div class="team-avatar">RV</div><div class="team-name">Rahul Verma</div><div class="team-role">Head of Product</div></div>
+      <div class="team-card"><div class="team-avatar">NJ</div><div class="team-name">Neha Joshi</div><div class="team-role">Head of Design</div></div>
+    </div>
+  </div>
+  <footer><div class="footer-logo">COMPARIX</div><div class="footer-text">© 2025 COMPARIX. ALL RIGHTS RESERVED.</div><div class="footer-text">PRICE INTELLIGENCE AI</div></footer>
+</div>
+
+<!-- CONTACT -->
+<div class="page" id="contact">
+  <div class="contact-hero"><h1>Get In Touch</h1><p>Have a question, partnership idea, or just want to say hello?</p></div>
+  <div class="contact-layout">
+    <div class="contact-info">
+      <h2>Contact Info</h2>
+      <div class="contact-item"><div class="contact-icon">📍</div><div class="contact-item-text"><strong>Office</strong><span>WeWork Galaxy, 43 Residency Road, Bangalore 560025</span></div></div>
+      <div class="contact-item"><div class="contact-icon">📧</div><div class="contact-item-text"><strong>Email</strong><span>hello@comparix.in</span></div></div>
+      <div class="contact-item"><div class="contact-icon">📞</div><div class="contact-item-text"><strong>Phone</strong><span>+91 80 4567 8901</span></div></div>
+      <div class="contact-item"><div class="contact-icon">🕐</div><div class="contact-item-text"><strong>Hours</strong><span>Mon – Fri, 9 AM to 6 PM IST</span></div></div>
+      <div class="social-links">
+        <a class="social-link" href="#">𝕏</a><a class="social-link" href="#">in</a><a class="social-link" href="#">◉</a><a class="social-link" href="#">⌥</a>
+      </div>
+    </div>
+    <div class="contact-form">
+      <div class="form-row">
+        <div class="form-group"><label>First Name</label><input type="text" id="fname" placeholder="Rahul"></div>
+        <div class="form-group"><label>Last Name</label><input type="text" id="lname" placeholder="Sharma"></div>
+      </div>
+      <div class="form-group"><label>Email Address</label><input type="email" id="email" inputmode="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label>Subject</label><select id="subject"><option value="">Select a topic</option><option>General Inquiry</option><option>Partnership / Business</option><option>Technical Support</option><option>Billing & Pricing</option><option>Media & Press</option><option>Feature Request</option></select></div>
+      <div class="form-group"><label>Message</label><textarea id="message" placeholder="Tell us how we can help you..."></textarea></div>
+      <button class="submit-btn" onclick="submitForm()">Send Message ›</button>
+      <div class="success-msg" id="successMsg">◈ MESSAGE RECEIVED. WE'LL RESPOND WITHIN 24 HOURS. ◈</div>
+    </div>
+  </div>
+  <footer><div class="footer-logo">COMPARIX</div><div class="footer-text">© 2025 COMPARIX. ALL RIGHTS RESERVED.</div><div class="footer-text">PRICE INTELLIGENCE AI</div></footer>
+</div>
+
+<script>
+// CURSOR
+const cursor=document.getElementById('cursor'),trail=document.getElementById('cursorTrail');
+let mx=0,my=0,tx=0,ty=0;
+const isTouch=window.matchMedia('(pointer:coarse)').matches;
+if(!isTouch){
+  document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cursor.style.left=mx+'px';cursor.style.top=my+'px'});
+  (function at(){tx+=(mx-tx)*.15;ty+=(my-ty)*.15;trail.style.left=tx+'px';trail.style.top=ty+'px';requestAnimationFrame(at)})();
+}
+
+// BG CANVAS
+const bgC=document.getElementById('bg-canvas'),bgX=bgC.getContext('2d');
+function rBg(){bgC.width=window.innerWidth;bgC.height=window.innerHeight;}
+rBg();window.addEventListener('resize',rBg);
+const pc=window.innerWidth<600?50:100;
+const pts=Array.from({length:pc},()=>({x:Math.random()*bgC.width,y:Math.random()*bgC.height,r:Math.random()*1.3+.3,vx:(Math.random()-.5)*.28,vy:(Math.random()-.5)*.28,o:Math.random()*.5+.1,c:Math.random()>.5?'0,245,255':'191,0,255'}));
+function aBg(){
+  bgX.clearRect(0,0,bgC.width,bgC.height);
+  const g=bgX.createRadialGradient(bgC.width/2,bgC.height*.3,0,bgC.width/2,bgC.height*.3,bgC.width*.7);
+  g.addColorStop(0,'rgba(5,13,24,1)');g.addColorStop(1,'rgba(2,4,8,1)');
+  bgX.fillStyle=g;bgX.fillRect(0,0,bgC.width,bgC.height);
+  const s=window.innerWidth<600?50:64;
+  bgX.strokeStyle='rgba(0,245,255,.022)';bgX.lineWidth=1;
+  for(let x=0;x<bgC.width;x+=s){bgX.beginPath();bgX.moveTo(x,0);bgX.lineTo(x,bgC.height);bgX.stroke();}
+  for(let y=0;y<bgC.height;y+=s){bgX.beginPath();bgX.moveTo(0,y);bgX.lineTo(bgC.width,y);bgX.stroke();}
+  [[bgC.width*.2,bgC.height*.2,'0,245,255'],[bgC.width*.8,bgC.height*.6,'191,0,255']].forEach(([ox,oy,c])=>{
+    const o=bgX.createRadialGradient(ox,oy,0,ox,oy,270);o.addColorStop(0,`rgba(${c},.04)`);o.addColorStop(1,'transparent');bgX.fillStyle=o;bgX.fillRect(0,0,bgC.width,bgC.height);
+  });
+  const cd=window.innerWidth<600?65:95;
+  pts.forEach(p=>{
+    p.x+=p.vx;p.y+=p.vy;
+    if(p.x<0)p.x=bgC.width;if(p.x>bgC.width)p.x=0;if(p.y<0)p.y=bgC.height;if(p.y>bgC.height)p.y=0;
+    bgX.beginPath();bgX.arc(p.x,p.y,p.r,0,Math.PI*2);bgX.fillStyle=`rgba(${p.c},${p.o})`;bgX.fill();
+    pts.forEach(p2=>{const d=Math.hypot(p2.x-p.x,p2.y-p.y);if(d<cd){bgX.beginPath();bgX.moveTo(p.x,p.y);bgX.lineTo(p2.x,p2.y);bgX.strokeStyle=`rgba(0,245,255,${.03*(1-d/cd)})`;bgX.lineWidth=.5;bgX.stroke();}});
+  });
+  requestAnimationFrame(aBg);
+}
+aBg();
+
+// PAGE NAV
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  ['btn-','mob-btn-','mobbtn-'].forEach(pre=>{
+    document.querySelectorAll(`[id^="${pre}"]`).forEach(b=>b.classList.remove('active'));
+    const el=document.getElementById(pre+id);if(el)el.classList.add('active');
+  });
+  window.scrollTo(0,0);
+}
+function toggleMenu(){
+  const h=document.getElementById('hamburger'),n=document.getElementById('mobileNav');
+  h.classList.toggle('open');n.classList.toggle('open');
+}
+function closeMenu(){
+  document.getElementById('hamburger').classList.remove('open');
+  document.getElementById('mobileNav').classList.remove('open');
+}
+document.addEventListener('click',e=>{
+  const n=document.getElementById('mobileNav'),h=document.getElementById('hamburger');
+  if(n.classList.contains('open')&&!n.contains(e.target)&&!h.contains(e.target))closeMenu();
+});
+
+// PRODUCT CARDS
+const sampleProducts=[
+  {platform:'AMAZON',name:'iPhone 15 Pro Max 256GB',best:'₹1,34,900',old:'₹1,59,900',save:'Save ₹25,000'},
+  {platform:'FLIPKART',name:'Samsung Galaxy S24 Ultra',best:'₹1,09,999',old:'₹1,29,999',save:'Save ₹20,000'},
+  {platform:'MYNTRA',name:'Nike Air Max 270',best:'₹6,499',old:'₹9,995',save:'Save ₹3,496'},
+  {platform:'MEESHO',name:'Boat Rockerz 550',best:'₹999',old:'₹3,990',save:'Save ₹2,991'},
+  {platform:'NYKAA',name:'Dyson Airwrap Complete',best:'₹42,900',old:'₹51,000',save:'Save ₹8,100'},
+  {platform:'SNAPDEAL',name:'Sony WH-1000XM5',best:'₹22,990',old:'₹29,990',save:'Save ₹7,000'},
+  {platform:'TATA CLIQ',name:'Apple Watch Series 9',best:'₹41,900',old:'₹49,000',save:'Save ₹7,100'},
+  {platform:'AJIO',name:"Levi's 511 Slim Jeans",best:'₹1,799',old:'₹3,999',save:'Save ₹2,200'},
+  {platform:'JIOMART',name:'Philips Air Fryer HD9200',best:'₹3,999',old:'₹6,995',save:'Save ₹2,996'},
+  {platform:'AMAZON',name:'MacBook Air M3 16GB',best:'₹1,09,900',old:'₹1,34,900',save:'Save ₹25,000'},
+];
+const track=document.getElementById('cardsTrack');
+[...sampleProducts,...sampleProducts].forEach(p=>{
+  const c=document.createElement('div');c.className='product-card';
+  c.innerHTML=`<div class="card-platform">${p.platform}</div><div class="card-name">${p.name}</div><div class="card-prices"><span class="card-price-best">${p.best}</span><span class="card-price-old">${p.old}</span></div><div class="card-saving">${p.save}</div>`;
+  track.appendChild(c);
+});
+
+// STATS
+function animateStats(){
+  document.querySelectorAll('.stat-num').forEach(el=>{
+    const target=+el.dataset.target;let s=0;const step=target/60;
+    const t=setInterval(()=>{s+=step;if(s>=target){s=target;clearInterval(t);}el.textContent=Math.floor(s)+(el.dataset.target==='2'?'':'+');},16);
+  });
+}
+const sO=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){animateStats();sO.disconnect();}});},{threshold:.2});
+const sb=document.querySelector('.stats-bar');if(sb)sO.observe(sb);
+
+// SEARCH
+const demoResults=[
+  {platform:'Flipkart',price:'₹82,999',rating:'⭐ 4.6',url:'flipkart.com'},
+  {platform:'Amazon',price:'₹84,999',rating:'⭐ 4.7',url:'amazon.in'},
+  {platform:'Croma',price:'₹86,990',rating:'⭐ 4.4',url:'croma.com'},
+  {platform:'Reliance Digital',price:'₹88,900',rating:'⭐ 4.3',url:'reliancedigital.in'},
+  {platform:'TataCliq',price:'₹89,000',rating:'⭐ 4.5',url:'tatacliq.com'},
+];
+function fillExample(p){
+  const links={amazon:'https://www.amazon.in/dp/B0CHX1FWPT',flipkart:'https://www.flipkart.com/apple-iphone-15-pro/p/itmfc865fda1e76b',myntra:'https://www.myntra.com/shoes/nike/air-max-270/9876543',meesho:'https://www.meesho.com/product/boat-rockerz/12345678',nykaa:'https://www.nykaa.com/dyson-airwrap/p/4325678',snapdeal:'https://www.snapdeal.com/product/sony-wh1000xm5/876543'};
+  document.getElementById('linkInput').value=links[p]||'';
+}
+function searchProduct(){
+  const inp=document.getElementById('linkInput').value.trim();
+  if(!inp){const el=document.getElementById('linkInput');el.style.borderColor='#ff3366';el.placeholder='⚠ Please enter a product link!';setTimeout(()=>{el.style.borderColor='';el.placeholder='Paste product link here…';},2200);return;}
+  const ld=document.getElementById('loadingDots'),rs=document.getElementById('resultsSection');
+  rs.classList.remove('show');ld.classList.add('show');
+  setTimeout(()=>{
+    ld.classList.remove('show');rs.classList.add('show');
+    const body=document.getElementById('resultsBody');
+    const name=inp.includes('iphone')?'Apple iPhone 15 Pro 128GB (Black Titanium)':inp.includes('galaxy')?'Samsung Galaxy S24 Ultra 256GB':inp.includes('airwrap')?'Dyson Airwrap Complete Styler':inp.includes('rockerz')?'boAt Rockerz 550 Bluetooth Headphones':'Samsung Galaxy S24 FE 5G (256GB)';
+    const sorted=[...demoResults].sort((a,b)=>+a.price.replace(/[^0-9]/g,'')-+b.price.replace(/[^0-9]/g,''));
+    body.innerHTML=sorted.map((r,i)=>`<div class="result-row" style="animation-delay:${i*.08}s"><div class="result-row-inner"><div><div class="result-platform">${r.platform}</div><div class="result-name">${name}</div></div><div class="result-rating">${r.rating}</div><div class="result-price">${r.price}</div><div class="result-link"><a href="https://${r.url}" target="_blank" rel="noopener">VIEW DEAL ›</a></div></div></div>`).join('');
+    rs.scrollIntoView({behavior:'smooth',block:'nearest'});
+  },2000);
+}
+document.getElementById('linkInput').addEventListener('keydown',e=>{if(e.key==='Enter')searchProduct();});
+
+// FAQ
+function toggleFaq(el){el.classList.toggle('open');}
+
+// BILLING
+let isAnnual=false;
+function toggleBilling(){
+  isAnnual=!isAnnual;
+  document.getElementById('billingToggle').classList.toggle('on',isAnnual);
+  document.getElementById('monthlyLabel').classList.toggle('active',!isAnnual);
+  document.getElementById('annualLabel').classList.toggle('active',isAnnual);
+  document.querySelectorAll('.price-val').forEach(el=>{el.textContent=isAnnual?el.dataset.annual:el.dataset.monthly;});
+  const p=isAnnual?'Per month · Billed annually':'Per month · Billed monthly';
+  document.getElementById('proPeriod').textContent=p;
+  document.getElementById('entPeriod').textContent=p;
+}
+
+// CONTACT
+function submitForm(){
+  const f=document.getElementById('fname').value,e=document.getElementById('email').value,s=document.getElementById('subject').value,m=document.getElementById('message').value;
+  if(!f||!e||!s||!m){alert('Please fill in all fields before sending.');return;}
+  document.getElementById('successMsg').style.display='block';
+  ['fname','lname','email','subject','message'].forEach(id=>{document.getElementById(id).value='';});
+  setTimeout(()=>{document.getElementById('successMsg').style.display='none';},5000);
+}
+
+// ABOUT CANVAS
+const aC=document.getElementById('about-canvas');
+if(aC){
+  const ac=aC.getContext('2d');
+  function sizeA(){aC.width=aC.parentElement.offsetWidth||400;aC.height=aC.parentElement.offsetHeight||350;}
+  sizeA();window.addEventListener('resize',sizeA);
+  const labels=['amazon','flipkart','myntra','meesho','nykaa','snapdeal','ajio','jiomart'];
+  const nodes=labels.map(l=>({x:Math.random()*aC.width,y:Math.random()*aC.height,vx:(Math.random()-.5)*1.1,vy:(Math.random()-.5)*1.1,label:l,r:22}));
+  function dA(){
+    const w=aC.width,h=aC.height;ac.clearRect(0,0,w,h);
+    const cx=w/2,cy=h/2;
+    nodes.forEach(n=>{
+      n.x+=n.vx;n.y+=n.vy;
+      if(n.x<n.r)n.vx=Math.abs(n.vx);if(n.x>w-n.r)n.vx=-Math.abs(n.vx);
+      if(n.y<n.r)n.vy=Math.abs(n.vy);if(n.y>h-n.r)n.vy=-Math.abs(n.vy);
+      ac.beginPath();ac.moveTo(n.x,n.y);ac.lineTo(cx,cy);ac.strokeStyle='rgba(0,245,255,.12)';ac.lineWidth=1;ac.stroke();
+      const g=ac.createRadialGradient(n.x,n.y,0,n.x,n.y,n.r);g.addColorStop(0,'rgba(0,245,255,.18)');g.addColorStop(1,'rgba(0,245,255,.01)');
+      ac.beginPath();ac.arc(n.x,n.y,n.r,0,Math.PI*2);ac.fillStyle=g;ac.fill();
+      ac.strokeStyle='rgba(0,245,255,.22)';ac.lineWidth=1;ac.stroke();
+      ac.fillStyle='rgba(224,244,255,.7)';ac.font=`${Math.max(7,Math.min(9,w/52))}px Space Mono,monospace`;ac.textAlign='center';ac.fillText(n.label.toUpperCase(),n.x,n.y+3);
+    });
+    const cg=ac.createRadialGradient(cx,cy,0,cx,cy,38);cg.addColorStop(0,'rgba(0,245,255,.26)');cg.addColorStop(1,'rgba(0,245,255,.01)');
+    ac.beginPath();ac.arc(cx,cy,38,0,Math.PI*2);ac.fillStyle=cg;ac.fill();ac.strokeStyle='rgba(0,245,255,.55)';ac.lineWidth=2;ac.stroke();
+    ac.fillStyle='#00f5ff';ac.font=`bold ${Math.max(8,Math.min(11,w/46))}px Orbitron,sans-serif`;ac.textAlign='center';ac.fillText('COMPARIX',cx,cy+4);
+    requestAnimationFrame(dA);
+  }
+  dA();
+}
+
+// SCROLL REVEAL
+document.querySelectorAll('.feature-card,.mission-card,.team-card,.price-card,.step,.contact-item').forEach((el,i)=>{
+  el.style.opacity='0';el.style.transform='translateY(22px)';
+  el.style.transition=`opacity .55s ${Math.min(i*.06,.4)}s ease,transform .55s ${Math.min(i*.06,.4)}s ease`;
+  const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){el.style.opacity='1';el.style.transform='translateY(0)';obs.disconnect();}});},{threshold:.08});
+  obs.observe(el);
+});
+</script>
+</body>
+</html>
